@@ -79,7 +79,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
                         help="Whether to run training.")
 
     parser.add_argument("--num_train_epochs",
-                        default=1.0,
+                        default=8.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -89,7 +89,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
                         "E.g., 0.1 = 10%% of training.")
     # optimizer 参数
     parser.add_argument("--learning_rate",
-                        default=5e-5,
+                        default=2e-5,
                         type=float,
                         help="Adam 的 学习率")
 
@@ -101,7 +101,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
 
     parser.add_argument('--print_step',
                         type=int,
-                        default=200,
+                        default=500,
                         help="多少步进行模型保存以及日志信息写入")
 
     parser.add_argument("--early_stop", type=int, default=50,

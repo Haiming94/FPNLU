@@ -6,7 +6,7 @@ import torch
 from tensorboardX import SummaryWriter
 import time
 
-from bin.Utils.utils import classifiction_metric
+from src.Utils.utils import classifiction_metric
 
 
 def train(epoch_num, n_gpu, model, train_dataloader, dev_dataloader, 
@@ -19,7 +19,7 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
         train_dataloader: 训练数据的Dataloader
         dev_dataloader: 测试数据的 Dataloader
         optimizer: 优化器
-        criterion： 损失函数定义
+        criterion: 损失函数
         gradient_accumulation_steps: 梯度积累
         device: 设备，cuda， cpu
         label_list: 分类的标签数组
@@ -34,9 +34,9 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
 
     early_stop_times = 0
 
-    writer = SummaryWriter(
-        log_dir=log_dir + '/' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime(time.time())))
-
+    # writer = SummaryWriter(
+    #     log_dir=log_dir + '/' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime(time.time())))
+    writer_out = open(log_dir + "out.txt", "w")
 
     best_dev_loss = float('inf')
     best_auc = 0
@@ -51,7 +51,6 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
         print(f'---------------- Epoch: {epoch+1:02} ----------')
 
         epoch_loss = 0
-
         train_steps = 0
 
         all_preds = np.array([], dtype=int)
@@ -63,10 +62,9 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
             batch = tuple(t.to(device) for t in batch)
             _, input_ids, input_mask, segment_ids, label_ids = batch
             
-
             logits = model(input_ids, segment_ids, input_mask, labels=None)
             loss = criterion(logits.view(-1, len(label_list)), label_ids.view(-1))
-
+            
             """ 修正 loss """
             if n_gpu > 1:
                 loss = loss.mean()  # mean() to average on multi-gpu.
@@ -75,7 +73,7 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
             
             train_steps += 1
 
-            loss.backward()
+            loss.backward(retain_graph=True)
 
             # 用于画图和分析的数据
             epoch_loss += loss.item()
@@ -96,29 +94,45 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
                     train_loss = epoch_loss / train_steps
                     train_acc, train_report, train_auc = classifiction_metric(all_preds, all_labels, label_list)
 
-                    dev_loss, dev_acc, dev_report, dev_auc = evaluate(model, dev_dataloader, criterion, device, label_list)
-
                     c = global_step // print_step
-                    writer.add_scalar("loss/train", train_loss, c)
-                    writer.add_scalar("loss/dev", dev_loss, c)
+                    print("{}, train_loss: {:.5f}, train_acc: {:.5f}, train_auc: {:.2f} \n".format(c, train_loss, train_acc, train_auc))
+                    writer_out.write("{} - train_loss: {}, tran_acc: {} \n".format(c, train_loss, train_acc))
 
-                    writer.add_scalar("acc/train", train_acc, c)
-                    writer.add_scalar("acc/dev", dev_acc, c)
+                    for t,dataloader in dev_dataloader.items():
+                        dev_loss, dev_acc, dev_report, dev_auc = evaluate(model, dataloader, criterion, device, label_list)
+                        print("{}, {}_loss: {:.5f}, {}_acc: {:.5f}, {}_auc: {:.2f} best_acc: {:.5f} \n".format(c, t, dev_loss, t, dev_acc, t, dev_auc, best_acc))
+                        writer_out.write("{} - {}_loss: {}, {}_acc: {} \n".format(c, t, dev_loss, t, dev_acc ))
 
-                    writer.add_scalar("auc/train", train_auc, c)
-                    writer.add_scalar("auc/dev", dev_auc, c)
+                    # for n, p in list(model.named_parameters()):
+                    #     if n == 'module.classifier.weight':
+                    #         print(p)
+                    writer_out.flush()
+                    # writer.add_scalar("loss/train", train_loss, c)
+                    # writer.add_scalar("loss/dev", dev_loss, c)
 
-                    for label in label_list:
-                        writer.add_scalar(label + ":" + "f1/train", train_report[label]['f1-score'], c)
-                        writer.add_scalar(label + ":" + "f1/dev",
-                                        dev_report[label]['f1-score'], c)
+                    # print("{}, train_loss: {}, dev_loss: {}".format(c, train_loss, dev_loss))
 
-                    print_list = ['macro avg', 'weighted avg']
-                    for label in print_list:
-                        writer.add_scalar(label + ":" + "f1/train",
-                                        train_report[label]['f1-score'], c)
-                        writer.add_scalar(label + ":" + "f1/dev",
-                                        dev_report[label]['f1-score'], c)
+                    # writer.add_scalar("acc/train", train_acc, c)
+                    # writer.add_scalar("acc/dev", dev_acc, c)
+
+                    # print("{}, train_acc: {}, dev_acc: {}".format(c, train_acc, dev_acc))
+
+                    # writer.add_scalar("auc/train", train_auc, c)
+                    # writer.add_scalar("auc/dev", dev_auc, c)
+
+                    # print("{}, train_auc: {}, dev_auc: {}".format(c, train_auc, dev_auc))
+
+                    # for label in label_list:
+                    #     writer.add_scalar(label + ":" + "f1/train", train_report[label]['f1-score'], c)
+                    #     writer.add_scalar(label + ":" + "f1/dev",
+                    #                     dev_report[label]['f1-score'], c)
+
+                    # print_list = ['macro avg', 'weighted avg']
+                    # for label in print_list:
+                    #     writer.add_scalar(label + ":" + "f1/train",
+                    #                     train_report[label]['f1-score'], c)
+                    #     writer.add_scalar(label + ":" + "f1/dev",
+                    #                     dev_report[label]['f1-score'], c)
                     
                     # # 以损失取优
                     # if dev_loss < best_dev_loss:
@@ -132,7 +146,6 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
                     # if dev_auc > best_auc:
                     #     best_auc = dev_auc
 
-
                         model_to_save = model.module if hasattr(
                             model, 'module') else model
                         torch.save(model_to_save.state_dict(), output_model_file)
@@ -143,7 +156,8 @@ output_model_file, output_config_file, log_dir, print_step, early_stop):
                     else:
                         early_stop_times += 1
 
-    writer.close()
+    # writer.close()
+    writer_out.close()
                     
 
 def evaluate(model, dataloader, criterion, device, label_list):

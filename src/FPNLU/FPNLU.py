@@ -7,10 +7,10 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 
-from bin.Models.Measurement import Measurement as mm
-from bin.Models.Linear import Linear
-from bin.Models.GlobalMixture import GlobalMixture as Mixture
-from bin.Models.KLDistance import KLDistance as KL
+from src.Models.Measurement import Measurement as mm
+from src.Models.Linear import Linear
+from src.Models.GlobalMixture import GlobalMixture as Mixture
+from src.Models.KLDistance import KLDistance as KL
 
 class FPNLU(BertPreTrainedModel):
 
@@ -35,7 +35,7 @@ class FPNLU(BertPreTrainedModel):
       attention_mask: 区分 padding 与 token， 1表示是token，0 为padding
     """
     encoded_layers, _ = self.bert(
-        input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
+      input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
     # encoded_layers: [batch_size, seq_len, bert_dim=768]
     
     encoded_layers = self.dropout(encoded_layers)
@@ -58,10 +58,3 @@ class FPNLU(BertPreTrainedModel):
       return loss
     else:
       return logits
-
-  # def Measurement(self, inputs):
-  #   mm = torch.matmul(self.operator, inputs)
-  #   mm = torch.matmul(mm, self.operator.t())
-  #   mm = torch.diagonal(mm, dim1=1, dim2=2)
-  #   output = self.softmax(mm)
-  #   return output

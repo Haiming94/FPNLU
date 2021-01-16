@@ -72,43 +72,62 @@ def load_tsv_dataset(filename, set_type):
     return examples
 
 
-def load_data(task_list, data_dir, tokenizer, max_length, batch_size, data_type, label_list, format_type=0):
+def load_data(task_list, data_dir, tokenizer, max_length, batch_size, data_type, format_type=0):
     
     if format_type == 0:
         load_func = load_tsv_dataset
 
     if data_type == "train":
         examples = []
+        label_list = []
         for t in task_list:
-            print(t)
             Processor = glue_processors[t]()
+            t_label = Processor.get_labels() 
             task_dir = os.path.join(data_dir, glue_dir[t])
             task_examples = Processor.get_train_examples(task_dir)
-        examples += task_examples
+            print("data: {}  examples: {}".format(glue_dir[t], len(task_examples)))
+            examples += task_examples
+            label_list += t_label
+            
     elif data_type == "dev":
-        examples = []
+        examples = {}
+        label_list = []
         for t in task_list:
             Processor = glue_processors[t]()
+            t_label = Processor.get_labels() 
             dev_dir = os.path.join(data_dir, glue_dir[t])
             dev_examples = Processor.get_dev_examples(dev_dir)
-        examples += dev_examples
+            print("data: {}  examples: {}".format(glue_dir[t], len(dev_examples)))
+            examples[t] = dev_examples
+            label_list += t_label
         # examples = load_func(dev_file, data_type)
     elif data_type == "test":
-        examples = []
+        examples = {}
+        label_list = []
         for t in task_list:
             Processor = glue_processors[t]()
+            t_label = Processor.get_labels() 
             test_dir = os.path.join(data_dir, glue_dir[t])
             test_examples = Processor.get_test_examples(test_dir)
-        examples += test_examples
+            examples[t] = test_examples
+            label_list += t_label
     else:
         raise RuntimeError("should be train or dev or test")
 
-    features = convert_examples_to_features(
-        examples, label_list, max_length, tokenizer)
 
-    dataloader = convert_features_to_tensors(features, batch_size, data_type)
+    if data_type == "train":
+        features = convert_examples_to_features(
+            examples, label_list, max_length, tokenizer)
+        dataloader = convert_features_to_tensors(features, batch_size, data_type)
+        examples_len = len(examples)
+    else:
+        dataloader = {}
+        examples_len = {}
+        for t in task_list:
+            features = convert_examples_to_features(
+                examples[t], label_list, max_length, tokenizer)
+            dataloader[t] = convert_features_to_tensors(features, batch_size, data_type)
+            examples_len[t] = len(examples[t])
 
-    examples_len = len(examples)
-
-    return dataloader, examples_len
+    return dataloader, examples_len, label_list
 

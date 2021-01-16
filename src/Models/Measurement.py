@@ -7,9 +7,10 @@ class Measurement(nn.Module):
   def __init__(self, hidden_size):
     super(Measurement, self).__init__()
     self.softmax = nn.Softmax(dim=1)
-    self.operator = nn.Parameter(torch.Tensor(hidden_size, hidden_size))
+    self.operator = nn.Parameter(torch.Tensor(hidden_size, hidden_size), requires_grad=True)
 
-    nn.init.uniform_(self.operator, 0, 1)
+    # nn.init.uniform_(self.operator, 0, 1)
+    nn.init.orthogonal(self.operator)
 
   
   def forward(self, inputs):

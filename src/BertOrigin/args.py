@@ -53,7 +53,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
                         help="Set this flag if you are using an uncased model.")
 
     parser.add_argument("--max_seq_length",
-                        default=512,
+                        default=128,
                         type=int,
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
@@ -62,12 +62,12 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
 
     # 训练参数
     parser.add_argument("--train_batch_size",
-                        default=8,
+                        default=4,
                         type=int,
                         help="Total batch size for training.")
 
     parser.add_argument("--dev_batch_size",
-                        default=8,
+                        default=4,
                         type=int,
                         help="Total batch size for dev.")
     parser.add_argument("--test_batch_size",
@@ -80,7 +80,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
                         help="Whether to run training.")
 
     parser.add_argument("--num_train_epochs",
-                        default=1.0,
+                        default=8.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -90,7 +90,7 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
                         "E.g., 0.1 = 10%% of training.")
     # optimizer 参数
     parser.add_argument("--learning_rate", 
-                        default=5e-5,
+                        default=5e-6,
                         type=float,
                         help="Adam 的 学习率")
 
@@ -102,13 +102,13 @@ def get_args(data_dir, output_dir, cache_dir, bert_vocab_file, bert_model_dir, l
 
     parser.add_argument('--print_step',
                         type=int,
-                        default=50,
+                        default=500,
                         help="多少步进行模型保存以及日志信息写入")
      
     parser.add_argument("--early_stop", type=int, default=50, help="提前终止，多少次dev loss 连续增大，就不再训练")
 
 
-    parser.add_argument("--gpu_ids", type=str, default="1", help="gpu 的设备id")
+    parser.add_argument("--gpu_ids", type=str, default="0 1", help="gpu 的设备id")
     config = parser.parse_args()
 
     return config

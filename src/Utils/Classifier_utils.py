@@ -10,17 +10,6 @@ class InputExample(object):
     """单句子分类的 Example 类"""
 
     def __init__(self, guid, text_a, text_b=None, label=None):
-        """Constructs a InputExample.
-
-        Args:
-            guid: Unique id for the example.
-            text_a: string. The untokenized text of the first sequence. For single
-            sequence tasks, only this sequence must be specified.
-            text_b: (Optional) string. The untokenized text of the second sequence.
-            Only must be specified for sequence pair tasks.
-            label: (Optional) string. The label of the example. This should be
-            specified for train and dev examples, but not for test examples.
-        """
         self.guid = guid
         self.text_a = text_a
         self.text_b = text_b
@@ -97,6 +86,9 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
         assert len(segment_ids) == max_seq_length
 
         try:
+            if isinstance(example.label, list):
+                print(example.label)
+                continue
             label_id = label_map[example.label]
         except(KeyError):
             print(example.label)
@@ -224,13 +216,15 @@ class MrpcProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "0":
-            return "5"
-        elif label == "1":
-            return "6"
+        if label:
+            if label == "0":
+                return "5"
+            elif label == "1":
+                return "6"
         # return ["0", "1"]
+        return ["5", "6"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -274,15 +268,17 @@ class MnliProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test_matched.tsv")), "test_matched")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "contradiction":
-            return "2"
-        elif label == "entailment":
-            return "3"
-        elif label == "neutral":
-            return "4"
+        if label:
+            if label == "contradiction":
+                return "2"
+            elif label == "entailment":
+                return "3"
+            elif label == "neutral":
+                return "4"
         # return ["contradiction", "entailment", "neutral"]
+        return ["2", "3", "4"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -341,13 +337,13 @@ class ColaProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    # def get_labels(self, label):
-    #     """See base class."""
-    #     if label == "0":
-    #         pass
-    #     elif label == "1":
-    #         pass
-    #     return ["0", "1"]
+    def get_labels(self, label=None):
+        """See base class."""
+        if label == "0":
+            pass
+        elif label == "1":
+            pass
+        return ["0", "1"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -356,6 +352,7 @@ class ColaProcessor(DataProcessor):
             lines = lines[1:]
         text_index = 1 if test_mode else 3
         examples = []
+        num_label = dict()
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
             text_a = line[text_index]
@@ -363,6 +360,11 @@ class ColaProcessor(DataProcessor):
             if label == None:
                 label = "1"
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+            if label == "1":
+                num_label["1"] = num_label.get("1", 0) + 1
+            else:
+                num_label["0"] = num_label.get("0", 0) + 1
+        print("比例：{} : {}".format(num_label['1'], num_label["0"]))
         return examples
 
 
@@ -390,13 +392,15 @@ class Sst2Processor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "0":
-            return "7"
-        elif label == "1":
-            return "8"
+        if label:
+            if label == "0":
+                return "7"
+            elif label == "1":
+                return "8"
         # return ["0", "1"]
+        return ["7", "8"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -440,20 +444,22 @@ class StsbProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        label = float(label)
-        if label > 4:
-            return "9"
-        elif label > 3:
-            return "10"
-        elif label > 2:
-            return "11"
-        elif label > 1:
-            return "12"
-        elif label > 0:
-            return "13"
+        if label:
+            label = float(label)
+            if label > 4:
+                return "9"
+            elif label > 3:
+                return "10"
+            elif label > 2:
+                return "11"
+            elif label > 1:
+                return "12"
+            elif label >= 0:
+                return "13"
         # return [None]
+        return ["9", "10", "11", "12", "13"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -467,6 +473,8 @@ class StsbProcessor(DataProcessor):
             label = None if set_type == "test" else line[-1]
             if label:
                 label = self.get_labels(label)
+                if isinstance(label, list):
+                    print(line[-1])
             else:
                 label = "1"
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -497,13 +505,15 @@ class QqpProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "0":
-            return "14"
-        elif label == "1":
-            return "15"
+        if label:
+            if label == "0":
+                return "14"
+            elif label == "1":
+                return "15"
         # return ["0", "1"]
+        return ["14", "15"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -553,13 +563,15 @@ class QnliProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "entailment":
-            return "16"
-        elif label == "not_entailment":
-            return "17"
+        if label:
+            if label == "entailment":
+                return "16"
+            elif label == "not_entailment":
+                return "17"
         # return ["entailment", "not_entailment"]
+        return ["16", "17"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -603,13 +615,15 @@ class RteProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "entailment":
-            return "18"
-        elif label == "not_entailment":
-            return "19"
-    #     return ["entailment", "not_entailment"]
+        if label:
+            if label == "entailment":
+                return "18"
+            elif label == "not_entailment":
+                return "19"
+        # return ["entailment", "not_entailment"]
+        return ["18", "19"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
@@ -653,13 +667,15 @@ class WnliProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
-    def get_labels(self, label):
+    def get_labels(self, label=None):
         """See base class."""
-        if label == "0":
-            return "20"
-        elif label == "1":
-            return "21"
-    #     return ["0", "1"]
+        if label:
+            if label == "0":
+                return "20"
+            elif label == "1":
+                return "21"
+        # return ["0", "1"]
+        return ["20", "21"]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
